@@ -40,36 +40,37 @@ data_out = [
 ]
 
 # Make an object of Neural Network
-network = Nn.Network()
-
-# Optional - Modify parameters
-network.error_rate = 0.01
-
-# Assign data to Neural Network
-network.set_data(data_in, data_out)
-
-# Set a model of layers, remember last layer must be equals to size of a row output
-network.make_layers([8, 10, 3])
+network = Nn.Network(data=(data_in, data_out), model=[2, 4], activation='STEP')
+network.error_rate = 0.001
+network.maximum_restarts = 10
 
 # Train with a maximum iterations
 print('Training model...')
-network.train(1000)
+network.train(500)
 print('Model trained!')
 
 # Optional - show numer of iterations
 print(f'Iterations: {network.it_n}')
 
 # Start to predict
-print('Ask 150, 50')
-network.predict([150, 50], True)
+print('Ask 150, 50 - [0, 1, 0]')
+pred = network.predict([150, 50])
+print(pred)
 
-print('Ask 170, 47')
-network.predict([170, 47], True)
 
-print('Ask 172, 72')
-network.predict([172, 72], True)
+print('Ask 170, 47 - [1, 0, 0]')
+pred = network.predict([170, 47])
+print(pred)
 
-print('Ask 180, 92')
-network.predict([180, 92], True)
 
+print('Ask 172, 72 - [0, 1, 0]')
+pred = network.predict([172, 72])
+print(pred)
+
+
+print('Ask 180, 92 - [0, 0, 1]')
+pred = network.predict([180, 92])
+print(pred)
+
+#print(network)
 # For show all neurons values just use print(network)
