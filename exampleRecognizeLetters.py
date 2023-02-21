@@ -47,17 +47,7 @@ class ExampleRecognizeLetters:
         ]
 
         # Make an object of Neural Network
-        network = Nn.Network()
-
-        # Optional - Modify parameters
-        network.error_rate = 0.001
-
-        # Assign data to Neural Network
-        network.set_data(data_in, data_out)
-
-        # Set a model of layers, remember last layer must be equals to size of a row output
-        network.make_layers([5, 10, 3])
-
+        network = Nn.Network(data=(data_in, data_out), model=[5, 10], activation='MISH', output_activation='SOFTMAX')
         # Train with a maximum iterations
         print('Training model...')
         network.train(500)
@@ -71,27 +61,39 @@ class ExampleRecognizeLetters:
         pred = network.predict(self.A)
         print(f'Prediction: {pred}')
 
+
         print('Ask for B')
-        network.predict(self.B, True)
+        pred = network.predict(self.B)
+        print(f'Prediction: {pred}')
+
 
         print('Ask for C')
-        network.predict(self.C, True)
+        pred = network.predict(self.C)
+        print(f'Prediction: {pred}')
+
 
         # Alter letters
         print('\nChanging letter values')
         self.alter_letter(self.A)
         print('Ask for A')
-        network.predict(self.A, True)
+        pred = network.predict(self.A)
+        print(f'Prediction: {pred}')
+
 
         self.alter_letter(self.B)
         print('Ask for B')
-        network.predict(self.B, True)
+        pred = network.predict(self.B)
+        print(f'Prediction: {pred}')
+
 
         self.alter_letter(self.C)
         print('Ask for C')
-        network.predict(self.C, True)
+        pred = network.predict(self.C)
+        print(f'Prediction: {pred}')
 
         # For show all neurons values just use print(network)
+
+        #print(network)
 
     def alter_letter(self, letter):
         original = self.str_letter(letter)

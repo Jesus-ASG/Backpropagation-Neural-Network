@@ -1,4 +1,5 @@
 import random
+import math
 
 
 class Neuron:
@@ -29,10 +30,10 @@ class Neuron:
 
 
 class Network:
-    def __init__(self):
-        self.__ERROR = True
-        self.error_rate = 0.01
-        self.maximum_restarts = 10
+    def __init__(self, data, model, activation, output_activation=''):
+        self.__ERROR = False
+        self.error_rate = 0.001
+        self.maximum_restarts = 1
         self.current_restart = 0
 
         self.network = list()
@@ -40,25 +41,35 @@ class Network:
 
         self.it_n = 0
 
-        self.data_in = list()
-        self.data_out = list()
+        self.data_in = data[0]
+        self.data_out = data[1]
 
-    def set_data(self, data_in, data_out):
-        self.data_in = data_in
-        self.data_out = data_out
-        if len(self.data_in) != len(self.data_out):
-            print('Error: the number of rows must be equals for inputs and outputs')
-        else:
-            self.__ERROR = False
+        self.set_model(model)
+        
+        self.f = self.gelu
+        self.f_output = self.no_output_function
 
-    def make_layers(self, model):
-        if self.__ERROR:
-            return
-        if len(self.data_out[0]) != model[-1]:
-            print(f'Error: number of outputs ({len(self.data_out[0])}), expected ({model[-1]})')
-            self.__ERROR = True
-            return
+        match activation:
+            case 'STEP':
+                self.f = self.step
+            case 'SIGMOID':
+                self.f = self.sigmoid
+            case 'RELU':
+                self.f = self.relu
+            case 'GELU':
+                self.f = self.gelu
+            case 'MISH':
+                self.f = self.mish
 
+        match output_activation:
+            case 'SOFTMAX':
+                self.f_output = self.softmax
+            case 'SIGMOID':
+                self.f_output = self.output_sigmoid
+
+
+    def set_model(self, model):
+        model.append(len(self.data_out[0]))
         current_neuron = 1
         for i, m in enumerate(model):
             layer = list()
@@ -126,6 +137,8 @@ class Network:
                     b = False
                     break
 
+            
+
             # Consideration of reset when reaching n-iterations
             if self.it_n == it_before_restart and self.current_restart < self.maximum_restarts:
                 for c in self.network:
@@ -137,10 +150,17 @@ class Network:
                     self.row_errors[i] = 1
             self.it_n += 1
 
-    def predict(self, row, show=None):
-        if show is None:
-            show = False
+        
+        print(f'final precision {round_array(self.row_errors, 2)}')
+        
+        # Add function
+        # get outputs and modify values with values function
+        #last_layer_outputs = self.outputs_of_layer(self.network[-1])
+        #last_layer_outputs = self.f_output(last_layer_outputs)
+        #for i, o in enumerate(last_layer_outputs):
+        #    self.network[-1][i].output = o
 
+    def predict(self, row):
         for ln, layer in enumerate(self.network):
             if ln == 0:  # Layer 0
                 for neuron in layer:
@@ -154,10 +174,7 @@ class Network:
         predictions = list()
         for layer in last_layer:
             predictions.append(layer.output)
-
-        if show:
-            print(f'Prediction: {predictions}')
-        return predictions
+        return round_array(self.f_output(predictions), 3)
 
     @staticmethod
     def outputs_of_layer(layer):    # Return array with all outputs of a layer
@@ -173,14 +190,57 @@ class Network:
             mul += valor1[i] * valor2[i]
         return mul
 
+
     @staticmethod
-    def f(num):  # Return 0 if n is less than 0 and 1 otherwise
-        return 0 if num < 0 else 1
+    def step(x):
+        return 0 if x < 0 else 1
+    
+    @staticmethod
+    def sigmoid(x):
+        x = cut_x(x)
+        return 1 / (1 + math.exp(-x))
+    
+    @staticmethod
+    def relu(x):
+        x = cut_x(x)
+        return x if x > (0) else (0)
+    
+    @staticmethod
+    def gelu(x):
+        x = cut_x(x)
+        coefficient = math.sqrt(2 / math.pi)
+        return 0.5 * x * (1 + math.tanh(coefficient * (x + 0.044715 * math.pow(x, 3))))
+
+    @staticmethod
+    def mish(x):
+        x = cut_x(x)
+        e_x = math.exp(x)
+        softplus = math.log(1+e_x, 10)
+        mish = x*math.tanh(softplus)
+        return mish
+    
+    @staticmethod
+    def no_output_function(x):
+        return x
+    
+    @staticmethod
+    def softmax(x):
+        x_max = max(x)
+        e_x = [math.exp(xi - x_max) for xi in x]
+        sum_e_x = sum(e_x)
+        softmax = [ex_i / sum_e_x for ex_i in e_x]
+        return softmax
+
+    @staticmethod
+    def output_sigmoid(x):
+        max_x = max(x)
+        return [1 / (1 + math.exp(xi - max_x)) for xi in x]
+    
 
     @staticmethod
     def can_finish(row_errors):  # Check if each row has 0 as error
         for d in row_errors:
-            if d != 0:
+            if abs(d) > 0.5:
                 return False
         return True
 
@@ -192,3 +252,21 @@ class Network:
                 aux += str(neuron)
         aux += '-' * 50
         return aux
+    
+    
+
+
+# Another functions
+
+def cut_x(x):
+    if x > 500:
+        x = 500
+    elif x < -500:
+        x = -500
+    return x
+
+def round_array(array, number):
+    x = list()
+    for i in array:
+        x.append(round(i, number))
+    return x
